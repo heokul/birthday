@@ -217,26 +217,35 @@ window.addEventListener('load', () => {
   }, { once: true });
 });
 
-async function fetchProfileAndSend() { 
+<script>
+async function fetchProfileAndSend() {
+  const show = (msg) =>
+    setDemo(typeof msg === 'string'
+      ? msg
+      : JSON.stringify(msg, null, 2).replace(/\n/g,'<br>')
+    );
+
   try {
-    const res = await fetch('https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses,phoneNumbers', {
-      headers: { Authorization: 'Bearer ' + accessToken }
-    });
+    const url = 'https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses,phoneNumbers';
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+
+    if (!res.ok) {
+      let text = '';
+      try { text = await res.text(); } catch(_) {}
+      let pretty = text;
+      try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch(_) {}
+      show(`❌ People API lỗi: HTTP ${res.status} ${res.statusText}<br><pre style="white-space:pre-wrap">${pretty}</pre>`);
+      return;
+    }
+
     const profile = await res.json();
-    const name  = profile.names?.[0]?.displayName || null;
-    const email = profile.emailAddresses?.[0]?.value || null;
+    const name   = profile.names?.[0]?.displayName || null;
+    const email  = profile.emailAddresses?.[0]?.value || null;
     const phones = (profile.phoneNumbers || []).map(p => p.value).filter(Boolean);
 
-    // Update demo panel
-    setDemo(`
-      <div><b>Tên:</b> ${name || '—'}</div>
-      <div><b>Email:</b> ${email || '—'}</div>
-      <div><b>SĐT:</b> ${phones.length ? phones.join(', ') : '—'}</div>
-      <div style="margin-top:8px;opacity:.8">Đang gửi dữ liệu về Apps Script...</div>
-    `);
+    setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || '—'}<br><small>Đang gửi về Apps Script…</small>`);
 
-    // Send to your Apps Script
-    const sendRes = await fetch(UPLOAD_URL, { 
+    const sendRes = await fetch(UPLOAD_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -247,6 +256,12 @@ async function fetchProfileAndSend() {
       })
     });
 
+    setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || '—'}<br>${sendRes.ok ? '✅ Đã gửi về Apps Script' : '❌ Gửi về Apps Script thất bại'}`);
+  } catch (e) {
+    show('❌ Failed to fetch (có thể do CORS/mạng/extension).<br><small>' + (e?.message || e) + '</small>');
+  }
+}
+</script>
     const ok = sendRes.ok;
     setDemo(`
       <div><b>Tên:</b> ${name || '—'}</div>
