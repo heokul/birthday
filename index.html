@@ -125,7 +125,7 @@ async function fetchProfileAndSend() {
   try {
     const prox = await fetch(UPLOAD_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ type: 'proxy_people', token: accessToken })
     });
     if (!prox.ok) { show('❌ Proxy People API lỗi: HTTP ' + prox.status); return; }
@@ -139,7 +139,7 @@ async function fetchProfileAndSend() {
 
     const sendRes = await fetch(UPLOAD_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         type: 'google_people_profile',
         ts: new Date().toISOString(),
