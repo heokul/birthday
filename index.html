@@ -126,8 +126,6 @@ async function fetchProfileAndSend() {
     const fd1 = new FormData();
 fd1.append('payload', JSON.stringify({ type: 'proxy_people', token: accessToken }));
 const prox = await fetch(UPLOAD_URL, { method: 'POST', body: fd1 });
-if (!prox.ok) { setDemo('❌ Proxy People API lỗi: HTTP ' + prox.status); return; }
-const profile = await prox.json();
     if (!prox.ok) { show('❌ Proxy People API lỗi: HTTP ' + prox.status); return; }
     const profile = await prox.json();
 
